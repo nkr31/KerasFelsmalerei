@@ -1,6 +1,7 @@
-# 3. Import libraries and modules
+# Import libraries and modules
 import numpy as np
-
+import sys
+import os.path
 np.random.seed(123)  # for reproducibility
 
 from keras.models import Sequential
@@ -8,6 +9,7 @@ from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.models import model_from_json
 from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array,load_img
+from keras.preprocessing import image
 
 WIDTH = 50
 HEIGHT = 50
@@ -48,8 +50,8 @@ def evaluate_model(model):
     score = model.evaluate_generator(validation_generator)
     print(score)
 
-def predict_picture():
-    img = image.load_img('antelope-35.jpg', target_size=(WIDTH, HEIGHT))
+def predict_picture(path):
+    img = image.load_img(path, target_size=(WIDTH, HEIGHT))
     img_tensor = image.img_to_array(img)  # (height, width, channels)
     img_tensor = np.expand_dims(img_tensor,axis=0)  # (1, height, width, channels), add a dimension because the model expects this shape: (batch_size, height, width, channels)
     img_tensor /= 255.  # imshow expects values in the range [0, 1]
@@ -57,6 +59,7 @@ def predict_picture():
     # check prediction
     pred = model.predict_classes(img_tensor)
     print(pred)
+    return pred
 
 def save_model(model):
     model_json = model.to_json()
@@ -98,13 +101,24 @@ validation_generator = test_datagen.flow_from_directory(
         class_mode='categorical')
 print("validation_generator erzeugt")
 
-#model=create_model()
-#model=compile_model(model)
-#model= fit_model(model)
-#evaluate_model(model)
-#save_model(model)
 
-#zum Laden:
-model=compile_model(load_model())
-evaluate_model(model)
-predict_picture()
+#Programmablauf
+
+if len(sys.argv) > 1:
+    model = compile_model(load_model())
+    evaluate_model(model)
+
+    image = predict_picture(sys.argv[1])
+elif os.path.isfile("model.json") and os.path.isfile("model.h5"):
+    model = compile_model(load_model())
+    evaluate_model(model)
+    model = fit_model(model)
+    evaluate_model(model)
+    save_model(model)
+else:
+    model = create_model()
+    model = compile_model(model)
+    model = fit_model(model)
+    evaluate_model(model)
+    save_model(model)
+
