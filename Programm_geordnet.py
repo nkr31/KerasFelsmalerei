@@ -1,4 +1,4 @@
-# Import libraries and modules
+# 3. Import libraries and modules
 import numpy as np
 import sys
 import os.path
@@ -59,7 +59,7 @@ def predict_picture(path):
     # check prediction
     pred = model.predict_classes(img_tensor)
     print(pred)
-    return pred
+    return pred[0]
 
 def save_model(model):
     model_json = model.to_json()
@@ -92,6 +92,11 @@ train_generator = train_datagen.flow_from_directory(
         target_size=(WIDTH, HEIGHT),
         batch_size=32,
         class_mode='categorical')
+
+
+class_dictionary = train_generator.class_indices
+class_dictionary_inv = {v: k for k, v in class_dictionary.items()}
+print(class_dictionary_inv)
 print("train_generator erzeugt")
 
 validation_generator = test_datagen.flow_from_directory(
@@ -102,13 +107,13 @@ validation_generator = test_datagen.flow_from_directory(
 print("validation_generator erzeugt")
 
 
-#Programmablauf
+#zum Laden:
 
 if len(sys.argv) > 1:
     model = compile_model(load_model())
     evaluate_model(model)
 
-    image = predict_picture(sys.argv[1])
+    print (class_dictionary_inv.get(predict_picture(sys.argv[1])))
 elif os.path.isfile("model.json") and os.path.isfile("model.h5"):
     model = compile_model(load_model())
     evaluate_model(model)
