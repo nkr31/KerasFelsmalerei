@@ -50,7 +50,9 @@ def create_model():
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(3, activation='softmax'))
+    return model
 
+def compile_model(model):
     model.compile(loss='categorical_crossentropy',
                   optimizer='adam',
                   metrics=['accuracy'])
@@ -105,19 +107,20 @@ print("test_datagen erzeugt")
 
 train_generator = train_datagen.flow_from_directory(
         'data/train',
-        target_size=(28, 28),
+        target_size=(WIDTH, HEIGHT),
         batch_size=32,
         class_mode='categorical')
 print("train_generator erzeugt")
 
 validation_generator = test_datagen.flow_from_directory(
         'data/test',
-        target_size=(28, 28),
+        target_size=(WIDTH, HEIGHT),
         batch_size=32,
         class_mode='categorical')
 print("validation_generator erzeugt")
 
 model=create_model()
+model=compile_model(model)
 model= fit_model(model)
 evaluate_model(model)
 save_model(model)
