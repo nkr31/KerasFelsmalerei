@@ -1,4 +1,5 @@
 # 3. Import libraries and modules
+
 import numpy as np
 import sys
 import os.path
@@ -10,9 +11,10 @@ from keras.layers import Convolution2D, MaxPooling2D
 from keras.models import model_from_json
 from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array,load_img
 from keras.preprocessing import image
+import operator
 
-WIDTH = 50
-HEIGHT = 50
+WIDTH = 100
+HEIGHT = 100
 
 def create_model():
     model = Sequential()
@@ -25,7 +27,7 @@ def create_model():
     model.add(Flatten())
     model.add(Dense(128, activation='relu'))
     model.add(Dropout(0.5))
-    model.add(Dense(3, activation='softmax'))
+    model.add(Dense(CATEGORIES, activation='softmax'))
     print("model erstellt")
     return model
 
@@ -55,10 +57,20 @@ def predict_picture(path):
     img_tensor = image.img_to_array(img)  # (height, width, channels)
     img_tensor = np.expand_dims(img_tensor,axis=0)  # (1, height, width, channels), add a dimension because the model expects this shape: (batch_size, height, width, channels)
     img_tensor /= 255.  # imshow expects values in the range [0, 1]
-
     # check prediction
     pred = model.predict_classes(img_tensor)
-    print(pred)
+    pred2 = model.predict_proba(img_tensor)
+
+    # Index, repräsentiert Klassennr
+    a=0
+    wahrscheinlichkeiten = {}
+    for i in pred2[0]:
+        #erzeugt ein dictionary mit klassen als key und wahrscheinlichkeiten als value
+        wahrscheinlichkeiten[CLASSES[a]] = i
+        a=a+1
+    #sortiert nach wahrscheinlichkeiten
+    wahrscheinlichkeiten_sorted=sorted(wahrscheinlichkeiten.items(), key=operator.itemgetter(1) , reverse=True)
+    print(wahrscheinlichkeiten_sorted)
     return pred[0]
 
 def save_model(model):
@@ -76,7 +88,6 @@ def load_model():
     model.load_weights("model.h5")
     return model
 
-
 train_datagen = ImageDataGenerator(
         rescale=1. / 255,
         shear_range=0.2,
@@ -93,10 +104,10 @@ train_generator = train_datagen.flow_from_directory(
         batch_size=32,
         class_mode='categorical')
 
-
 class_dictionary = train_generator.class_indices
-class_dictionary_inv = {v: k for k, v in class_dictionary.items()}
-print(class_dictionary_inv)
+CATEGORIES = len(class_dictionary)
+CLASSES = {v: k for k, v in class_dictionary.items()}
+print(CLASSES)
 print("train_generator erzeugt")
 
 validation_generator = test_datagen.flow_from_directory(
@@ -106,14 +117,11 @@ validation_generator = test_datagen.flow_from_directory(
         class_mode='categorical')
 print("validation_generator erzeugt")
 
-
 #zum Laden:
 
 if len(sys.argv) > 1:
     model = compile_model(load_model())
-    evaluate_model(model)
-
-    print (class_dictionary_inv.get(predict_picture(sys.argv[1])))
+    print (CLASSES.get(predict_picture(sys.argv[1])))
 elif os.path.isfile("model.json") and os.path.isfile("model.h5"):
     model = compile_model(load_model())
     evaluate_model(model)
@@ -126,4 +134,3 @@ else:
     model = fit_model(model)
     evaluate_model(model)
     save_model(model)
-
