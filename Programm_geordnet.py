@@ -1,9 +1,7 @@
-# 3. Import libraries and modules
-
 import numpy as np
 import sys
 import os.path
-np.random.seed(123)  # for reproducibility
+np.random.seed(123)
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
@@ -16,6 +14,7 @@ import operator
 WIDTH = 100
 HEIGHT = 100
 
+# erstellt ein Model
 def create_model():
     model = Sequential()
 
@@ -31,6 +30,7 @@ def create_model():
     print("model erstellt")
     return model
 
+# compiliert das Model
 def compile_model(model):
     model.compile(loss='categorical_crossentropy',
                   optimizer='adam',
@@ -38,6 +38,7 @@ def compile_model(model):
     print("model compiliert")
     return model
 
+# trainiert das Model
 def fit_model(model):
     model.fit_generator(
         train_generator,
@@ -48,15 +49,17 @@ def fit_model(model):
     print("training abgeschlossen")
     return model
 
+# evaluiert das Model
 def evaluate_model(model):
     score = model.evaluate_generator(validation_generator)
     print(score)
 
+# ermöglicht die Klassifizierung eines einzelnen Bildes
 def predict_picture(path):
     img = image.load_img(path, target_size=(WIDTH, HEIGHT))
-    img_tensor = image.img_to_array(img)  # (height, width, channels)
-    img_tensor = np.expand_dims(img_tensor,axis=0)  # (1, height, width, channels), add a dimension because the model expects this shape: (batch_size, height, width, channels)
-    img_tensor /= 255.  # imshow expects values in the range [0, 1]
+    img_tensor = image.img_to_array(img)
+    img_tensor = np.expand_dims(img_tensor,axis=0)
+    img_tensor /= 255.
     # check prediction
     pred = model.predict_classes(img_tensor)
     pred2 = model.predict_proba(img_tensor)
@@ -65,14 +68,15 @@ def predict_picture(path):
     a=0
     wahrscheinlichkeiten = {}
     for i in pred2[0]:
-        #erzeugt ein dictionary mit klassen als key und wahrscheinlichkeiten als value
+        #erzeugt ein Dictionary mit Klassen als Key und Wahrscheinlichkeiten als Value
         wahrscheinlichkeiten[CLASSES[a]] = i
         a=a+1
-    #sortiert nach wahrscheinlichkeiten
+    # Tierklassen nach Wahrscheinlichkeiten sortiert
     wahrscheinlichkeiten_sorted=sorted(wahrscheinlichkeiten.items(), key=operator.itemgetter(1) , reverse=True)
     print(wahrscheinlichkeiten_sorted)
     return pred[0]
 
+# Model speichern für einen späteren Zeitpunkt
 def save_model(model):
     model_json = model.to_json()
     with open("model.json", "w") as json_file:
@@ -80,6 +84,7 @@ def save_model(model):
     model.save_weights("model.h5")
     print("model gespeichert")
 
+# bereits vorhandenes Model aus .h5- und .json-Datei laden
 def load_model():
     json_file = open('model.json', 'r')
     loaded_model_json = json_file.read()
@@ -88,6 +93,7 @@ def load_model():
     model.load_weights("model.h5")
     return model
 
+# Vorbereitung der Daten
 train_datagen = ImageDataGenerator(
         rescale=1. / 255,
         shear_range=0.2,
@@ -105,7 +111,9 @@ train_generator = train_datagen.flow_from_directory(
         class_mode='categorical')
 
 class_dictionary = train_generator.class_indices
+# Anzahl der gefundenen Tierklassen
 CATEGORIES = len(class_dictionary)
+# Dictionary mit Tierklassen und deren Indizes
 CLASSES = {v: k for k, v in class_dictionary.items()}
 print(CLASSES)
 print("train_generator erzeugt")
@@ -117,17 +125,20 @@ validation_generator = test_datagen.flow_from_directory(
         class_mode='categorical')
 print("validation_generator erzeugt")
 
-#zum Laden:
-
+# zum Laden:
+# wenn ein zweiter Parameter übergeben wird, wird das Bild am entsprechenden Pfad klassifiziert
 if len(sys.argv) > 1:
     model = compile_model(load_model())
+    evaluate_model(model)
     print (CLASSES.get(predict_picture(sys.argv[1])))
+# wenn bereits Speicherdateien vorhanden sind, aber kein zweiter Parameter übergeben wird, wird das geladene Model neu trainiert und gespeichert
 elif os.path.isfile("model.json") and os.path.isfile("model.h5"):
     model = compile_model(load_model())
     evaluate_model(model)
     model = fit_model(model)
     evaluate_model(model)
     save_model(model)
+# Default: erstellt, compiliert, trainiert, evaluiert und speichert das Model
 else:
     model = create_model()
     model = compile_model(model)
